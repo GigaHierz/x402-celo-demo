@@ -32,10 +32,26 @@ const resourceServer = new x402ResourceServer(facilitatorClient).register(
   new ExactEvmScheme(),
 );
 
+/**
+ * Shown to anyone who might pay: this is a demo on real mainnet.
+ * ASCII-only — this string is also sent as an HTTP header, which cannot hold
+ * non-ASCII characters.
+ */
+export const WARNING =
+  "TEST SITE ON CELO MAINNET - paying this endpoint sends REAL USDC for nothing. " +
+  "If you pay, that is your choice and your loss.";
+
 export const app = express();
 // Behind Vercel's proxy, trust X-Forwarded-* so req.protocol/host (and thus the
 // x402 resource URL) reflect the public https origin.
 app.set("trust proxy", true);
+
+// Put the warning on EVERY response — including the 402 challenge — so
+// programmatic clients (agents) see it before they decide to pay.
+app.use((_req, res, next) => {
+  res.setHeader("X-Test-Warning", WARNING);
+  next();
+});
 
 app.use(
   paymentMiddleware(
@@ -68,11 +84,55 @@ app.get("/premium", (_req, res) => {
   res.json({
     data: "this response cost $0.01",
     ts: new Date().toISOString(),
+    warning: WARNING,
     attribution,
   });
 });
 
 // Public, unpaid: lets anyone read the app's attribution tag without paying.
 app.get("/attribution", (_req, res) => {
-  res.json(attribution);
+  res.json({ ...attribution, warning: WARNING });
+});
+
+// Landing page with a prominent warning banner for browser visitors.
+app.get("/", (_req, res) => {
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>x402 Celo demo — TEST SITE (mainnet)</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         line-height: 1.5; }
+  .banner { background: #b00020; color: #fff; padding: 18px 20px; font-weight: 700;
+            font-size: 1.05rem; text-align: center; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+  code { background: rgba(127,127,127,.18); padding: .15em .4em; border-radius: 4px; }
+  a { color: #0a58ca; }
+  .muted { opacity: .75; font-size: .9rem; }
+</style>
+</head>
+<body>
+  <div class="banner">⚠️ TEST SITE ON CELO MAINNET — paying sends REAL USDC for nothing. If you pay, that's your choice and your loss.</div>
+  <main>
+    <h1>x402 Celo demo</h1>
+    <p>This is a demonstration of <a href="https://x402.org">x402</a> HTTP payments
+       on <strong>Celo mainnet</strong> via the Celo Builders facilitator. It exists
+       to show the flow working — <strong>there is nothing worth buying here.</strong></p>
+    <p>The paid endpoint is <code>GET /premium</code> ($0.01 USDC). Hitting it without
+       payment returns <code>402 Payment Required</code>. Any payment sends real funds
+       to the demo wallet and gets you a one-line JSON response — <em>do not pay unless
+       you are intentionally testing.</em></p>
+    <ul>
+      <li><a href="/premium">/premium</a> — paid endpoint (returns 402 unpaid)</li>
+      <li><a href="/attribution">/attribution</a> — this app's ERC-8021 attribution tag</li>
+    </ul>
+    <p class="muted">Source &amp; details:
+       <a href="https://github.com/GigaHierz/x402-celo-demo">github.com/GigaHierz/x402-celo-demo</a></p>
+  </main>
+</body>
+</html>`);
 });

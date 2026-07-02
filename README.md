@@ -19,10 +19,17 @@ needs **USDC**, not CELO.
 
 The seller is deployed on Vercel (mainnet) — check it without any setup:
 
+- **Landing page:** <https://x402-celo-demo.vercel.app/> → warning banner
+  explaining this is a **test site on real mainnet**.
 - **Endpoint:** <https://x402-celo-demo.vercel.app/premium> → returns HTTP **402**
   with the payment requirements (Celo mainnet USDC).
 - **Attribution:** <https://x402-celo-demo.vercel.app/attribution> → the app's
   ERC-8021 attribution tag.
+
+> ⚠️ This endpoint is on **Celo mainnet**. Paying it moves **real USDC** for a
+> throwaway demo response. The banner, the `/` page, an `X-Test-Warning` response
+> header (on the 402 too), and a `warning` field in the JSON all say so — pay
+> only if you are intentionally testing.
 
 To actually pay it, point the buyer at the live URL:
 
