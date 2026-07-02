@@ -13,7 +13,37 @@ Two pieces:
 
 This uses the x402 **v2** protocol (`@x402/*` packages). The facilitator verifies
 and settles payments and sponsors the settlement gas, so the buyer wallet only
-needs test **USDC**, not CELO.
+needs **USDC**, not CELO.
+
+## Live deployment
+
+The seller is deployed on Vercel (mainnet) — check it without any setup:
+
+- **Endpoint:** <https://x402-celo-demo.vercel.app/premium> → returns HTTP **402**
+  with the payment requirements (Celo mainnet USDC).
+- **Attribution:** <https://x402-celo-demo.vercel.app/attribution> → the app's
+  ERC-8021 attribution tag.
+
+To actually pay it, point the buyer at the live URL:
+
+```sh
+X402_NETWORK=mainnet SERVER_URL=https://x402-celo-demo.vercel.app npm run agent
+```
+
+The same Express app runs locally (`src/server.ts` via `listen`) and on Vercel
+(`api/index.ts` exports the app as a serverless function; `vercel.json` rewrites
+all paths to it).
+
+## Attribution (ERC-8021)
+
+The seller integrates [`@celo/attribution-tags`](https://github.com/celo-org/attribution-tags)
+(`src/attribution.ts`): it derives the app's attribution code from its hostname
+and surfaces it as (a) x402 route metadata (`serviceName` + `tags` in the 402
+challenge), (b) an `X-Attribution-Tag` response header, and (c) the `/attribution`
+endpoint. **Caveat:** ERC-8021 tags are a calldata *suffix*, but in x402 the
+on-chain settlement tx is submitted by the *facilitator*, so the suffix can't
+ride the payment tx today — see [`FEEDBACK.md`](./FEEDBACK.md). The raw suffix
+(`ATTRIBUTION_SUFFIX`) is exported for transactions you send directly.
 
 ## 1. Prerequisites (manual, one-time)
 

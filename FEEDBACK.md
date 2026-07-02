@@ -146,6 +146,22 @@ opaque settlement failure:
 | USDT | ✅ |
 | USDm | ❌ (no `transferWithAuthorization`) |
 
+## 9. Facilitator-submitted settlement blocks on-chain attribution (ERC-8021)
+
+Celo's [attribution-tags](https://github.com/celo-org/attribution-tags) standard
+(ERC-8021) works by appending a small *suffix* to a transaction's calldata. In
+x402 the buyer only signs an EIP-3009 authorization off-chain; the **facilitator**
+builds and submits the settlement tx, so a seller/buyer can't append their
+attribution suffix to the payment that actually moves the funds. Result: the
+payment that a builder facilitated is on-chain-indistinguishable from any other.
+
+Suggestion: let the facilitator append a caller-supplied ERC-8021 suffix to the
+settlement calldata (e.g. an `attribution` field in the payment requirements /
+`extra`, or a per-API-key builder tag configured in the dashboard). That would
+make x402 volume attributable to the builder who drove it — directly useful for
+Proof of Ship / builder rewards. (This demo works around it by surfacing the tag
+at the HTTP layer only: route metadata, a response header, and `/attribution`.)
+
 ## Verified end-to-end
 
 Real payments for `GET /premium` settled by the facilitator (buyer signs
@@ -156,6 +172,8 @@ off-chain, facilitator sponsors gas):
 | Celo Sepolia | USDC | $0.01 | [`0x4b44013f…f6ecf`](https://celo-sepolia.blockscout.com/tx/0x4b44013fbfba707003e5ed8c7e2ada1cce68bf862a462b5ed163b6a982cf6ecf) |
 | Celo mainnet | USDC | $0.01 | [`0x88ba75fa…f1e8`](https://celoscan.io/tx/0x88ba75fa3a6344794280d4f059bf7efef6884ae1ee1a4c5ea51b9816f73ef1e8) |
 | Celo mainnet | USDT | $0.01 | [`0x0c81664f…1b3d`](https://celoscan.io/tx/0x0c81664feb5dc7aa1382ac04436e9e88e40143c80a60eef722662b93f1271b3d) |
+| Celo mainnet (live Vercel deploy) | USDC | $0.01 | [`0xb973e0b9…b1e6`](https://celoscan.io/tx/0xb973e0b9bb037d491d89fc0cd57e22f74496eac49a7406b3afd6b6680ccbb1e6) |
 
 Mainnet has full parity with testnet — the same API key works on both
-facilitator hosts.
+facilitator hosts. The last row was paid against the deployed endpoint at
+<https://x402-celo-demo.vercel.app/premium>.
