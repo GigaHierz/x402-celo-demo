@@ -73,19 +73,40 @@ USDC contract balance directly.
 | Var                 | Used by | Purpose                                             |
 | ------------------- | ------- | --------------------------------------------------- |
 | `X402_NETWORK`      | both    | `testnet` (Celo Sepolia) or `mainnet` (Celo)        |
+| `X402_ASSET`        | seller  | Token to charge in — `USDC` (default) or `USDT`      |
 | `X402_API_KEY`      | seller  | Celo Builders facilitator key (`X-API-Key` header)  |
 | `SELLER_PAY_TO`     | seller  | Address that receives the payment                   |
 | `PORT`              | seller  | Seller listen port (default 3000)                   |
-| `BUYER_PRIVATE_KEY` | buyer   | Private key of a wallet funded with test USDC       |
+| `BUYER_PRIVATE_KEY` | buyer   | Private key of a wallet funded with the chosen token |
 | `SERVER_URL`        | buyer   | Seller base URL (default `http://localhost:3000`)   |
+
+## Mainnet & asset selection
+
+To run on **Celo mainnet** (real funds, `eip155:42220`) set `X402_NETWORK=mainnet`.
+Pick the token with `X402_ASSET`. These env vars override `.env` when exported
+inline (dotenv doesn't overwrite an already-set variable), so:
+
+```sh
+# mainnet, pay in USDT
+X402_NETWORK=mainnet X402_ASSET=USDT npm run server   # terminal A
+X402_NETWORK=mainnet X402_ASSET=USDT npm run agent    # terminal B
+```
+
+Supported tokens (see `src/config.ts`):
+
+| Network      | Assets       |
+| ------------ | ------------ |
+| Celo Sepolia | `USDC`       |
+| Celo mainnet | `USDC`, `USDT` |
+
+Only tokens with EIP-3009 (`transferWithAuthorization`) work with the `exact`
+scheme. USDC and USDT qualify; **USDm does not** (no `transferWithAuthorization`),
+so it isn't offered here. The seller declares each token's address, decimals, and
+EIP-712 domain (`name`/`version`) explicitly, because `@x402/evm` has no default
+asset table for Celo. See [`FEEDBACK.md`](./FEEDBACK.md) for the details and the
+facilitator/skill feedback that came out of building this.
 
 ## Notes
 
-- To target **mainnet**, set `X402_NETWORK=mainnet` (uses real funds and
-  `eip155:42220`).
-- The seller maps the `"$0.01"` price to USDC via a default money parser. If a
-  run reports it can't resolve the asset for Celo Sepolia, specify the token
-  explicitly in the route `accepts` config or register a custom money parser
-  (`ExactEvmScheme#registerMoneyParser`).
 - Next step beyond this test: wrap `payFetch` in a real LLM agent that decides
   *when* to call the paid endpoint.

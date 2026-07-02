@@ -102,10 +102,60 @@ The doc shows `{ verify, settle, supported }` (and mentions `list`). The v2
   configured right, the buyer side "just worked" with the standard
   `wrapFetchWithPaymentFromConfig`.
 
+## 6. `/supported` doesn't advertise accepted assets (root cause of #3)
+
+`GET /supported` returns the network but an empty `extra`:
+
+```json
+{"kinds":[{"x402Version":2,"scheme":"exact","network":"eip155:42220","extra":{}}], ...}
+```
+
+Because it doesn't return the accepted token addresses / decimals / EIP-712
+domains, every seller has to hardcode them — which is exactly what produces the
+`No default asset configured for network eip155:42220` 500 when a bare dollar
+price is used. If `/supported` (or its `extra` field) advertised the asset list,
+sellers could self-configure and the whole "which token, what decimals, what
+domain" class of errors would disappear.
+
+## 7. Token table lacks the EIP-712 domain fields — and for USDT they aren't on-chain
+
+The `exact` scheme signs an EIP-3009 authorization, which needs the token's
+EIP-712 `name`/`version`. The SKILL.md token table gives address + decimals but
+not these. For **USDT** they can't even be read on-chain — `version()` reverts —
+so the domain had to be brute-forced against the on-chain `DOMAIN_SEPARATOR`.
+The table should publish `name`/`version` per token:
+
+| Token | address | decimals | EIP-712 `name` | `version` |
+| ----- | ------- | :------: | -------------- | :-------: |
+| USDC (mainnet) | `0xcebA9300f2b948710d2653dD7B07f33A8B32118C` | 6 | `USDC` | `2` |
+| USDC (Sepolia) | `0x01C5C0122039549AD1493B8220cABEdD739BC44E` | 6 | `USDC` | `2` |
+| USDT (mainnet) | `0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e` | 6 | `Tether USD` | `1` |
+
+## 8. USDm is listed as a payment token but can't be used with the `exact` scheme
+
+`0x765DE816845861e75A25fCA122bb6898B8B1282a` (Mento Dollar / USDm, 18 decimals)
+is listed as a supported payment token, but its `authorizationState` **reverts**
+— i.e. **no EIP-3009 / `transferWithAuthorization` support** — so the
+signed-authorization flow the skill documents cannot work for it. The token
+table should mark EIP-3009 support explicitly, or configuring USDm leads to an
+opaque settlement failure:
+
+| Token | EIP-3009 (`exact` scheme) |
+| ----- | :--: |
+| USDC | ✅ |
+| USDT | ✅ |
+| USDm | ❌ (no `transferWithAuthorization`) |
+
 ## Verified end-to-end
 
-A real `$0.01` USDC payment for `GET /premium` settled by the facilitator on
-Celo Sepolia:
+Real payments for `GET /premium` settled by the facilitator (buyer signs
+off-chain, facilitator sponsors gas):
 
-- **Tx:** [`0x4b44013fbfba707003e5ed8c7e2ada1cce68bf862a462b5ed163b6a982cf6ecf`](https://celo-sepolia.blockscout.com/tx/0x4b44013fbfba707003e5ed8c7e2ada1cce68bf862a462b5ed163b6a982cf6ecf)
-- Status **success**, block `29617650` — buyer → seller, facilitator-sponsored gas.
+| Network | Asset | Amount | Tx |
+| ------- | ----- | ------ | -- |
+| Celo Sepolia | USDC | $0.01 | [`0x4b44013f…f6ecf`](https://celo-sepolia.blockscout.com/tx/0x4b44013fbfba707003e5ed8c7e2ada1cce68bf862a462b5ed163b6a982cf6ecf) |
+| Celo mainnet | USDC | $0.01 | [`0x88ba75fa…f1e8`](https://celoscan.io/tx/0x88ba75fa3a6344794280d4f059bf7efef6884ae1ee1a4c5ea51b9816f73ef1e8) |
+| Celo mainnet | USDT | $0.01 | [`0x0c81664f…1b3d`](https://celoscan.io/tx/0x0c81664feb5dc7aa1382ac04436e9e88e40143c80a60eef722662b93f1271b3d) |
+
+Mainnet has full parity with testnet — the same API key works on both
+facilitator hosts.
