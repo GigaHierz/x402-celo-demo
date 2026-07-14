@@ -15,6 +15,21 @@ This uses the x402 **v2** protocol (`@x402/*` packages). The facilitator verifie
 and settles payments and sponsors the settlement gas, so the buyer wallet only
 needs **USDC**, not CELO.
 
+## Two protocols, same rails
+
+This repo now contains **two** HTTP-native payment examples on Celo:
+
+- **x402** (this root project) — `@x402/*` + Express, facilitator
+  `x402.celobuilders.xyz`. Also demonstrates USDT and ERC-8021 attribution tags,
+  and deploys to Vercel.
+- **MPP** ([`mpp/`](./mpp)) — Machine Payments Protocol via the `mppx` SDK + Hono,
+  facilitator `x402.celo.org`.
+
+Both settle USDC on Celo via EIP-3009 with a gasless buyer — and both facilitators
+turn out to be the **same backend** (same signer), so one `X402_API_KEY` works for
+both. See **[COMPARISON.md](./COMPARISON.md)** for a full side-by-side and
+verified transactions on each.
+
 ## Live deployment
 
 The seller is deployed on Vercel (mainnet) — check it without any setup:

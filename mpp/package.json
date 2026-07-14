@@ -1,0 +1,24 @@
+{
+  "name": "mpp-celo-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MPP (Machine Payments Protocol) payments on Celo — a one-time USDC charge gating an API, settled on Celo. Companion to the x402 example in the repo root.",
+  "scripts": {
+    "seller": "tsx src/seller.ts",
+    "buyer": "tsx src/buyer.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1",
+    "dotenv": "^16",
+    "hono": "^4",
+    "mppx": "0.8.7",
+    "viem": "^2"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
